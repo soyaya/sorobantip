@@ -36,12 +36,13 @@ import {
   raiseDispute,
   rateCounterparty,
   resolveWarrantyClaim,
+  setActiveNetwork,
   setShipmentMetadata,
   type Reputation,
   type Shipment,
   type ShipmentDetail,
   type Wallet,
-   configuredContractId
+  type NetworkName,
 } from "./lib/stellar";
 import { BulkActionsToolbar } from "./components/BulkActionsToolbar";
 import { DisputeForm } from "./components/DisputeForm";
@@ -50,8 +51,11 @@ import { StatusPill } from "./components/StatusPill";
 import { WarrantyPanel } from "./components/WarrantyPanel";
 import { amount, shortAddress } from "./lib/format";
 import { ShipmentMilestones } from "./components/ShipmentMilestones";
+import { NetworkSwitcher } from "./components/NetworkSwitcher";
+import { WalletModal } from "./components/WalletModal";
 import { TopUpForm } from "./components/TopUpForm";
 import { VaultPage } from "./components/VaultPage";
+import type { WalletId } from "./lib/wallets";
 
 type Escalation = {
   id: string;
@@ -215,24 +219,12 @@ function App() {
 
   async function connectWith(walletId: WalletId) {
     setShowWalletModal(false);
-    const syncPage = () => setPage(currentPage());
-    window.addEventListener("popstate", syncPage);
-    return () => window.removeEventListener("popstate", syncPage);
-  }, []);
-
-  function navigate(event: React.MouseEvent<HTMLAnchorElement>, path: string) {
-    event.preventDefault();
-    window.history.pushState(null, "", path);
-    setPage(currentPage());
-  }
-
-  async function handleConnect() {
     setError("");
     try {
       setWallet(await connectWallet(walletId));
       setNotice("Wallet connected");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("wallet.connectError"));
+      setError(errorMessage(cause, "Could not connect wallet."));
     }
   }
 
@@ -543,7 +535,6 @@ function App() {
               <div className="metric-value">{shipment ? shipment.open_disputes : "—"}</div>
               <div className="metric-foot">{shipment ? t("metrics.onTracked") : t("metrics.noShipment")}</div>
             </article>
-            </>}
             <article className="metric">
               <div className="metric-top"><span>{t("metrics.networkStatus")}</span><span className="metric-icon amber-icon"><Activity size={16} /></span></div>
               <div className="metric-value status-metric">{apiState === "online" ? t("metrics.operational") : apiState === "offline" ? t("metrics.disconnected") : t("metrics.checking")}</div>
@@ -652,7 +643,6 @@ function App() {
             </div>
             <Pagination label="Shipment records" page={viewedPages.page} pageCount={viewedPages.pageCount} onPageChange={viewedPages.setPage} />
           </section>
-          </>}
 
           <ShipmentWorkbench wallet={wallet} />
 
